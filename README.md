@@ -50,7 +50,7 @@ git push -u origin main
 1. cPanel → **Setup Node.js App** → Create Application
 2. Node version: **20**
 3. Application root: e.g. `/home/petzonep/nodeapps/hisaab-api`
-4. Application startup file: `dist/main.js`
+4. Application startup file: **`server.js`**
 5. Create `.env` in the application root (copy from `.env.example`)
 
 ### 3. Git deploy (`.cpanel.yml`)

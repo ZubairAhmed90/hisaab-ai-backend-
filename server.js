@@ -1,0 +1,38 @@
+/**
+ * HisaabAI — production entry point (cPanel / Node.js hosting)
+ *
+ * cPanel → Setup Node.js App → Application startup file: server.js
+ *
+ * Flow: server.js → dist/main.js (bootstrap) → NestJS app
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = __dirname;
+const DIST_MAIN = path.join(ROOT, 'dist', 'main.js');
+
+function fail(message) {
+  console.error(`[HisaabAI] ${message}`);
+  process.exit(1);
+}
+
+// Ensure build exists before starting
+if (!fs.existsSync(DIST_MAIN)) {
+  fail(
+    'dist/main.js not found. On the server run: npm ci && npm run build',
+  );
+}
+
+// Optional: warn if .env is missing (Nest also loads via @nestjs/config)
+if (!fs.existsSync(path.join(ROOT, '.env'))) {
+  console.warn('[HisaabAI] Warning: .env not found — set env vars in cPanel Node.js app');
+}
+
+const { bootstrap } = require(DIST_MAIN);
+
+bootstrap().catch((err) => {
+  console.error('[HisaabAI] Server failed to start:', err);
+  process.exit(1);
+});

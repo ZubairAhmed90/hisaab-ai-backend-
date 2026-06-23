@@ -19,7 +19,7 @@ deployment:
     - /bin/cp -R src $DEPLOYPATH/
     - /bin/cp -R prisma $DEPLOYPATH/
     - /bin/cp -R scripts $DEPLOYPATH/
-    - /bin/cp package.json package-lock.json nest-cli.json tsconfig.json tsconfig.build.json $DEPLOYPATH/
+    - /bin/cp package.json package-lock.json server.js nest-cli.json tsconfig.json tsconfig.build.json $DEPLOYPATH/
 
     # Install, migrate DB, build NestJS
     - cd $DEPLOYPATH && /usr/local/bin/npm ci
