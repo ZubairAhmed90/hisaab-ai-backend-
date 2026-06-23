@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "HisaabAI NestJS Backend",
   "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "nest build",
     "start": "node server.js",
