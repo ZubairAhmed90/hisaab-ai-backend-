@@ -1,0 +1,31 @@
+---
+# cPanel Git Version Control — runs automatically after git pull / deploy
+# Docs: https://docs.cpanel.net/knowledge-base/web-services/guide-to-git/set-up-deployment
+#
+# BEFORE FIRST DEPLOY:
+# 1. cPanel → Setup Node.js App → create app, note Application root path
+# 2. Replace DEPLOYPATH below with that path (e.g. /home/petzonep/nodeapps/hisaab-api)
+# 3. Create backend/.env on the server (NOT in git) with DATABASE_URL + secrets
+# 4. cPanel → Git Version Control → clone this repo → Deploy HEAD
+
+deployment:
+  tasks:
+    # ── UPDATE THIS PATH to your cPanel Node.js application root ──
+    - export DEPLOYPATH=/home/petzonep/nodeapps/hisaab-api
+
+    - /bin/mkdir -p $DEPLOYPATH
+
+    # Sync source (exclude git + local node_modules)
+    - /bin/cp -R src $DEPLOYPATH/
+    - /bin/cp -R prisma $DEPLOYPATH/
+    - /bin/cp -R scripts $DEPLOYPATH/
+    - /bin/cp package.json package-lock.json nest-cli.json tsconfig.json tsconfig.build.json $DEPLOYPATH/
+
+    # Install, migrate DB, build NestJS
+    - cd $DEPLOYPATH && /usr/local/bin/npm ci
+    - cd $DEPLOYPATH && /usr/local/bin/npx prisma generate
+    - cd $DEPLOYPATH && /usr/local/bin/npx prisma migrate deploy
+    - cd $DEPLOYPATH && /usr/local/bin/npm run build
+
+    # Restart Node.js app (cPanel Passenger / Node Selector)
+    - /usr/local/bin/touch $DEPLOYPATH/tmp/restart.txt 2>/dev/null || true
