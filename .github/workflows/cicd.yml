@@ -62,7 +62,7 @@ jobs:
             git reset --hard origin/main 2>/dev/null || git reset --hard origin/master
             # .cpanel.yml deployment tasks run automatically on git pull in cPanel UI,
             # or run deploy manually:
-            cd "$REPO_PATH" && npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
+            cd "$REPO_PATH" && npm ci && node scripts/copy-prisma-client.js && npm run build
             touch "${{ secrets.CPANEL_APP_ROOT }}/tmp/restart.txt" 2>/dev/null || true
 
       - name: Health check (optional)
