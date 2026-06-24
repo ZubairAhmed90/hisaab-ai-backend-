@@ -23,14 +23,23 @@ function fail(message) {
 }
 
 // Pin Prisma engine BEFORE any @prisma/client code loads
-const { pinPrismaEngine } = require(path.join(ROOT, 'scripts', 'pin-prisma-engine.js'));
+const { pinPrismaEngine, isRailway } = require(path.join(
+  ROOT,
+  'scripts',
+  'pin-prisma-engine.js',
+));
+const onRailway = isRailway();
 const enginePath = pinPrismaEngine(ROOT);
-if (!enginePath) {
+if (!enginePath && !onRailway) {
   fail(
     'No Linux Prisma engine in prisma/client/. Run: node scripts/check-prisma.js — or upload prisma/client from your PC.',
   );
 }
-console.log(`[HisaabAI] Prisma engine: ${enginePath}`);
+if (enginePath) {
+  console.log(`[HisaabAI] Prisma engine: ${enginePath}`);
+} else if (onRailway) {
+  console.log('[HisaabAI] Prisma engine: using node_modules default (Railway)');
+}
 
 // Ensure build exists before starting
 if (!fs.existsSync(DIST_MAIN)) {
@@ -38,18 +47,22 @@ if (!fs.existsSync(DIST_MAIN)) {
 }
 
 if (!fs.existsSync(path.join(ROOT, '.env'))) {
-  console.warn('[HisaabAI] Warning: .env not found — set env vars in cPanel Node.js app');
+  const where = onRailway ? 'Railway → Variables' : 'cPanel Node.js app';
+  console.warn(`[HisaabAI] Warning: .env not found — set env vars in ${where}`);
 }
 
 if (process.env.PORT) {
   console.log(`[HisaabAI] PORT=${process.env.PORT} (from cPanel / environment)`);
 }
 
-try {
-  const { copyPrismaClient } = require(path.join(ROOT, 'scripts', 'copy-prisma-client.js'));
-  copyPrismaClient(ROOT);
-} catch (e) {
-  console.warn('[HisaabAI] Prisma client copy skipped:', e.message);
+// cPanel nodevenv symlink layout only — skip on Railway (normal node_modules)
+if (!onRailway) {
+  try {
+    const { copyPrismaClient } = require(path.join(ROOT, 'scripts', 'copy-prisma-client.js'));
+    copyPrismaClient(ROOT);
+  } catch (e) {
+    console.warn('[HisaabAI] Prisma client copy skipped:', e.message);
+  }
 }
 
 const { bootstrap } = require(DIST_MAIN);

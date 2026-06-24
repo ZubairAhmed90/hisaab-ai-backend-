@@ -3,17 +3,32 @@
 const fs = require('fs');
 const path = require('path');
 
-/** HostNext / CloudLinux often needs debian-openssl-1.0.x */
-const LINUX_ENGINES = [
+const CPANEL_ENGINES = [
   'libquery_engine-debian-openssl-1.0.x.so.node',
   'libquery_engine-debian-openssl-1.1.x.so.node',
   'libquery_engine-debian-openssl-3.0.x.so.node',
   'libquery_engine-rhel-openssl-3.0.x.so.node',
 ];
 
+/** Railway / Docker — OpenSSL 3.x */
+const RAILWAY_ENGINES = [
+  'libquery_engine-debian-openssl-3.0.x.so.node',
+  'libquery_engine-rhel-openssl-3.0.x.so.node',
+  'libquery_engine-debian-openssl-1.1.x.so.node',
+  'libquery_engine-debian-openssl-1.0.x.so.node',
+];
+
+function isRailway() {
+  return Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+}
+
+function enginePriority() {
+  return isRailway() ? RAILWAY_ENGINES : CPANEL_ENGINES;
+}
+
 function findEngineInDir(dir) {
   if (!dir || !fs.existsSync(dir)) return null;
-  for (const file of LINUX_ENGINES) {
+  for (const file of enginePriority()) {
     const p = path.join(dir, file);
     if (fs.existsSync(p)) return p;
   }
@@ -42,11 +57,17 @@ function listEngineStatus(appRoot) {
     lines.push('STATUS: MISSING — run git pull or upload prisma/client from your PC');
     return lines;
   }
-  for (const file of LINUX_ENGINES) {
+  for (const file of enginePriority()) {
     const p = path.join(clientDir, file);
     lines.push(`${file}: ${fs.existsSync(p) ? 'OK' : 'missing'}`);
   }
   return lines;
 }
 
-module.exports = { pinPrismaEngine, listEngineStatus, LINUX_ENGINES };
+module.exports = {
+  pinPrismaEngine,
+  listEngineStatus,
+  CPANEL_ENGINES,
+  RAILWAY_ENGINES,
+  isRailway,
+};
