@@ -33,6 +33,14 @@ if (!fs.existsSync(path.join(ROOT, '.env'))) {
   console.warn('[HisaabAI] Warning: .env not found — set env vars in cPanel Node.js app');
 }
 
+// Copy committed Prisma client (cPanel nodevenv may skip postinstall paths)
+try {
+  const { copyPrismaClient } = require(path.join(ROOT, 'scripts', 'copy-prisma-client.js'));
+  copyPrismaClient(ROOT);
+} catch (e) {
+  console.warn('[HisaabAI] Prisma client copy skipped:', e.message);
+}
+
 const { bootstrap } = require(DIST_MAIN);
 
 bootstrap().catch((err) => {
