@@ -69,4 +69,4 @@ jobs:
         if: ${{ secrets.CPANEL_API_URL != '' }}
         run: |
           sleep 5
-          curl -sf "${{ secrets.CPANEL_API_URL }}/api/v1" -o /dev/null || echo "API root check skipped"
+          curl -sf "${{ secrets.CPANEL_API_URL }}/api/v1/health" -o /dev/null || echo "Health check skipped"

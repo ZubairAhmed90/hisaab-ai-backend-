@@ -37,7 +37,7 @@ export async function bootstrap() {
   }
 
   await app.listen(port, '0.0.0.0');
-  console.log(`[HisaabAI] API running on port ${port} — /api/v1`);
+  console.log(`[HisaabAI] API running on port ${port} — /api/v1/health`);
 }
 
 // Direct run: node dist/main.js (dev build / nest start)

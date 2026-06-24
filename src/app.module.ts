@@ -6,6 +6,7 @@ import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { GoalsModule } from './goals/goals.module';
+import { HealthModule } from './health/health.module';
 import { LimitsModule } from './limits/limits.module';
 import { MarketModule } from './market/market.module';
 import { MirrorModule } from './mirror/mirror.module';
@@ -20,6 +21,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    HealthModule,
     AdminModule,
     AuthModule,
     TransactionsModule,
