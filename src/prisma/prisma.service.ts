@@ -6,9 +6,13 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
-  // Connect Prisma client when the module starts
+  // Connect after listen on shared hosting (Prisma WASM is memory-heavy)
   async onModuleInit() {
-    await this.$connect();
+    setTimeout(() => {
+      void this.$connect().catch((e) =>
+        console.warn('[Prisma] deferred connect failed:', e),
+      );
+    }, 500);
   }
 
   // Disconnect Prisma client when the app shuts down

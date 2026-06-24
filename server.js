@@ -7,6 +7,9 @@
  */
 'use strict';
 
+// Limit heap for CloudLinux / cPanel shared hosting
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '2';
+
 const fs = require('fs');
 const path = require('path');
 

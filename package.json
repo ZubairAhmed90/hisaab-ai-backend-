@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "nest build",
-    "start": "node server.js",
-    "start:prod": "node server.js",
+    "start": "node --max-old-space-size=384 server.js",
+    "start:prod": "node --max-old-space-size=384 server.js",
     "start:dev": "nest start --watch",
     "install:cpanel": "npm install && npm run prisma:generate",
     "deploy:cpanel": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run build",

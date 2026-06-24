@@ -13,9 +13,20 @@ export class MarketService implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
 
   async onModuleInit() {
-    await this.ensureCatalogSeeded();
-    const count = await this.prisma.marketCache.count({ where: { asset_type: 'stock' } });
-    if (count < STOCK_CATALOG.length) await this.simulatePrices();
+    // Defer DB seeding so the app can listen first (saves memory on cPanel)
+    setTimeout(() => {
+      void this.initMarketCache();
+    }, 3000);
+  }
+
+  private async initMarketCache() {
+    try {
+      await this.ensureCatalogSeeded();
+      const count = await this.prisma.marketCache.count({ where: { asset_type: 'stock' } });
+      if (count < STOCK_CATALOG.length) await this.simulatePrices();
+    } catch (e) {
+      console.warn('[MarketService] initMarketCache failed:', e);
+    }
   }
 
   async cachePrice(entry: {

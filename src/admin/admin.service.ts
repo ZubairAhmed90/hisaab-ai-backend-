@@ -7,9 +7,19 @@ import { generateUniqueAccountNumber } from '../auth/auth.helpers';
 export class AdminService implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
 
-  async onModuleInit() {
-    await this.backfillAccountNumbers();
-    await this.ensureAdminUser();
+  onModuleInit() {
+    setTimeout(() => {
+      void this.initAdmin();
+    }, 2000);
+  }
+
+  private async initAdmin() {
+    try {
+      await this.backfillAccountNumbers();
+      await this.ensureAdminUser();
+    } catch (e) {
+      console.warn('[AdminService] initAdmin failed:', e);
+    }
   }
 
   async backfillAccountNumbers() {

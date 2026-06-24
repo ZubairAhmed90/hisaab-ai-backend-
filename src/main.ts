@@ -5,7 +5,12 @@ import { AppModule } from './app.module';
 
 // Configure CORS, validation, Swagger, and listen on PORT
 export async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const isProd = process.env.NODE_ENV === 'production';
+
+  const app = await NestFactory.create(AppModule, {
+    logger: isProd ? ['error', 'warn', 'log'] : undefined,
+  });
+
   const port = Number(process.env.PORT) || 3001;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -19,16 +24,19 @@ export async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('HisaabAI API')
-    .setDescription('Smart banking companion API for Pakistan')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api', app, document);
+  // Swagger uses extra memory — skip on cPanel production
+  if (!isProd || process.env.ENABLE_SWAGGER === 'true') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('HisaabAI API')
+      .setDescription('Smart banking companion API for Pakistan')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api', app, document);
+  }
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`[HisaabAI] API running on port ${port} — /api/v1`);
 }
 
