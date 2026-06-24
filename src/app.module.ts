@@ -16,10 +16,12 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
 import { TransactionsModule } from './transactions/transactions.module';
 
+const cronEnabled = process.env.DISABLE_CRON !== 'true';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ScheduleModule.forRoot(),
+    ...(cronEnabled ? [ScheduleModule.forRoot()] : []),
     PrismaModule,
     HealthModule,
     AdminModule,

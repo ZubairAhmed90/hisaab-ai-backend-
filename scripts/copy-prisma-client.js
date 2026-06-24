@@ -44,7 +44,9 @@ function findPrismaClientDest(repoRoot) {
     const pkg = require.resolve('@prisma/client/package.json', {
       paths: [repoRoot, process.cwd(), __dirname],
     });
-    return path.join(path.dirname(path.dirname(pkg)), '.prisma', 'client');
+    // @prisma/client → node_modules (two levels up from package.json)
+    const nodeModules = path.join(path.dirname(pkg), '..', '..');
+    return path.join(nodeModules, '.prisma', 'client');
   } catch {
     const candidates = [
       path.join(repoRoot, 'node_modules', '.prisma', 'client'),

@@ -7,8 +7,11 @@
  */
 'use strict';
 
-// Limit heap for CloudLinux / cPanel shared hosting
+'use strict';
+
+// cPanel / CloudLinux: lower memory footprint
 process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '2';
+process.env.DISABLE_CRON = process.env.DISABLE_CRON || 'true';
 
 const fs = require('fs');
 const path = require('path');
