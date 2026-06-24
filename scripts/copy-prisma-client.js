@@ -32,8 +32,10 @@ function findRepoRoot() {
 
   const home = process.env.HOME;
   if (home) {
-    const app = path.join(home, 'hisaab-ai-backend');
-    if (fs.existsSync(path.join(app, 'prisma', 'client'))) return app;
+    for (const app of ['hisaab.petzone.pk', 'hisaab-ai-backend']) {
+      const dir = path.join(home, app);
+      if (fs.existsSync(path.join(dir, 'prisma', 'client'))) return dir;
+    }
   }
 
   return null;
@@ -54,6 +56,16 @@ function findPrismaClientDest(repoRoot) {
     ];
     if (process.env.HOME) {
       candidates.push(
+        path.join(
+          process.env.HOME,
+          'nodevenv',
+          'hisaab.petzone.pk',
+          '20',
+          'lib',
+          'node_modules',
+          '.prisma',
+          'client',
+        ),
         path.join(
           process.env.HOME,
           'nodevenv',
