@@ -21,7 +21,7 @@ function fail(message) {
 // Ensure build exists before starting
 if (!fs.existsSync(DIST_MAIN)) {
   fail(
-    'dist/main.js not found. On the server run: npm ci && npm run build',
+    'dist/main.js not found. On the server run: npm install && npm run deploy:cpanel',
   );
 }
 
