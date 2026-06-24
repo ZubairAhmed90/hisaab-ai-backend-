@@ -60,7 +60,7 @@ export class TransactionsController {
   @UseInterceptors(FileInterceptor('file'))
   async importCsv(
     @CurrentUser() user: { userId: number },
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: { buffer: Buffer },
   ) {
     const data = await this.transactionsService.importCsv(user.userId, file.buffer);
     return ok(data, 'CSV imported');
