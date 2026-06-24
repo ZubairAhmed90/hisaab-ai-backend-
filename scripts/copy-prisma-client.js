@@ -41,7 +41,25 @@ function findRepoRoot() {
   return null;
 }
 
+function findNodeModulesDir(repoRoot) {
+  const link = path.join(repoRoot, 'node_modules');
+  if (fs.existsSync(link)) {
+    // CloudLinux: node_modules in app root is a symlink → nodevenv/.../lib/node_modules
+    try {
+      return fs.realpathSync(link);
+    } catch {
+      return link;
+    }
+  }
+  return null;
+}
+
 function findPrismaClientDest(repoRoot) {
+  const resolvedNm = findNodeModulesDir(repoRoot);
+  if (resolvedNm) {
+    return path.join(resolvedNm, '.prisma', 'client');
+  }
+
   try {
     const pkg = require.resolve('@prisma/client/package.json', {
       paths: [repoRoot, process.cwd(), __dirname],
@@ -107,6 +125,14 @@ function copyPrismaClient(repoRoot) {
 
   const dest = findPrismaClientDest(repoRoot);
   copyDir(src, dest);
+
+  const engine = path.join(dest, 'libquery_engine-debian-openssl-1.0.x.so.node');
+  if (!fs.existsSync(engine)) {
+    console.warn(
+      '[prisma] WARNING: libquery_engine-debian-openssl-1.0.x.so.node missing in prisma/client — git pull or upload prisma/client from your PC',
+    );
+  }
+
   console.log(`[prisma] Client copied to ${dest}`);
   return true;
 }

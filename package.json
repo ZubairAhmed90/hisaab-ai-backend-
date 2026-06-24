@@ -13,7 +13,7 @@
     "start:dev": "nest start --watch",
     "install:cpanel": "npm install",
     "deploy:cpanel": "node \"${INIT_CWD}/scripts/copy-prisma-client.js\" && npm run build",
-    "postinstall": "node \"${INIT_CWD}/scripts/copy-prisma-client.js\" || exit 0",
+    "check:prisma": "node scripts/check-prisma.js",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",

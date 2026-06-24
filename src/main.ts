@@ -11,7 +11,14 @@ export async function bootstrap() {
     logger: isProd ? ['error', 'warn', 'log'] : undefined,
   });
 
+  // cPanel injects PORT — listen on all interfaces; local dev falls back to 3001
+  const host = '0.0.0.0';
   const port = Number(process.env.PORT) || 3001;
+  if (!process.env.PORT) {
+    console.warn(
+      '[HisaabAI] PORT not set — using 3001. For live site use Node.js App → RESTART (not Run JS script → start).',
+    );
+  }
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
   app.enableCors({ origin: frontendUrl, credentials: true });
@@ -36,8 +43,8 @@ export async function bootstrap() {
     SwaggerModule.setup('api', app, document);
   }
 
-  await app.listen(port, '0.0.0.0');
-  console.log(`[HisaabAI] API running on port ${port} — /api/v1/health`);
+  await app.listen(port, host);
+  console.log(`[HisaabAI] API running on ${host}:${port} — /api/v1/health`);
 }
 
 // Direct run: node dist/main.js (dev build / nest start)

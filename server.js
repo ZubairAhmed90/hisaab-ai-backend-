@@ -7,9 +7,7 @@
  */
 'use strict';
 
-'use strict';
-
-// cPanel / CloudLinux: lower memory footprint
+// CloudLinux / cPanel: lower memory footprint
 process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '2';
 process.env.DISABLE_CRON = process.env.DISABLE_CRON || 'true';
 
@@ -24,19 +22,29 @@ function fail(message) {
   process.exit(1);
 }
 
-// Ensure build exists before starting
-if (!fs.existsSync(DIST_MAIN)) {
+// Pin Prisma engine BEFORE any @prisma/client code loads
+const { pinPrismaEngine } = require(path.join(ROOT, 'scripts', 'pin-prisma-engine.js'));
+const enginePath = pinPrismaEngine(ROOT);
+if (!enginePath) {
   fail(
-    'dist/main.js not found. On the server run: npm install && npm run deploy:cpanel',
+    'No Linux Prisma engine in prisma/client/. Run: node scripts/check-prisma.js — or upload prisma/client from your PC.',
   );
 }
+console.log(`[HisaabAI] Prisma engine: ${enginePath}`);
 
-// Optional: warn if .env is missing (Nest also loads via @nestjs/config)
+// Ensure build exists before starting
+if (!fs.existsSync(DIST_MAIN)) {
+  fail('dist/main.js not found. Run: npm run build');
+}
+
 if (!fs.existsSync(path.join(ROOT, '.env'))) {
   console.warn('[HisaabAI] Warning: .env not found — set env vars in cPanel Node.js app');
 }
 
-// Copy committed Prisma client (cPanel nodevenv may skip postinstall paths)
+if (process.env.PORT) {
+  console.log(`[HisaabAI] PORT=${process.env.PORT} (from cPanel / environment)`);
+}
+
 try {
   const { copyPrismaClient } = require(path.join(ROOT, 'scripts', 'copy-prisma-client.js'));
   copyPrismaClient(ROOT);
