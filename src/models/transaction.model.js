@@ -52,7 +52,7 @@ const TransactionModel = {
   },
 
   createDirect: async (data) => {
-    const [result] = await query(
+    const result = await query(
       `INSERT INTO transactions (user_id, amount, description, category, merchant, transaction_date, source)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [

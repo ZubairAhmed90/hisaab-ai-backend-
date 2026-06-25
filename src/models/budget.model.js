@@ -11,7 +11,7 @@ const BudgetModel = {
     query('SELECT * FROM budgets WHERE user_id = ? AND month = ?', [userId, month]),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       'INSERT INTO budgets (user_id, category, monthly_limit, month) VALUES (?, ?, ?, ?)',
       [data.user_id, data.category, data.monthly_limit, data.month],
     );

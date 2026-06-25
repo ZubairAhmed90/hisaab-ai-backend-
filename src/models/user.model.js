@@ -35,7 +35,7 @@ const UserModel = {
     query("SELECT id FROM users WHERE account_number IS NULL OR account_number = ''"),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       `INSERT INTO users (name, email, password_hash, phone, monthly_income, account_number, wallet_balance, account_balance)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -53,7 +53,7 @@ const UserModel = {
   },
 
   createAdmin: async (data) => {
-    const [result] = await query(
+    const result = await query(
       'INSERT INTO users (name, email, password_hash, account_number, is_admin, wallet_balance) VALUES (?, ?, ?, ?, 1, 0)',
       [data.name, data.email, data.password_hash, data.account_number],
     );

@@ -50,7 +50,7 @@ const LimitModel = {
     ),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       `INSERT INTO spending_limits (owner_id, target_user_id, category, monthly_limit, alert_at_percent, is_hard_limit)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [

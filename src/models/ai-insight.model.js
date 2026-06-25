@@ -23,7 +23,7 @@ const AiInsightModel = {
     ),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       `INSERT INTO ai_insights (user_id, type, content_en, content_ur, valid_until)
        VALUES (?, ?, ?, ?, ?)`,
       [

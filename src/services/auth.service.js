@@ -33,7 +33,7 @@ const register = async (dto) => {
     account_balance: dto.monthly_income ?? 0,
   });
 
-  await seedDemoData(user.id);
+  seedDemoData(user.id).catch((e) => console.warn('[Auth] seedDemoData failed:', e.message));
   return { ...generateTokens(user.id, user.email), user: formatUserProfile(user) };
 };
 

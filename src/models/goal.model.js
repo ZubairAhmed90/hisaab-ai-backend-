@@ -11,7 +11,7 @@ const GoalModel = {
     query('SELECT * FROM goals WHERE user_id = ? ORDER BY deadline ASC', [userId]),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       'INSERT INTO goals (user_id, title, target_amount, deadline) VALUES (?, ?, ?, ?)',
       [data.user_id, data.title, data.target_amount, data.deadline],
     );

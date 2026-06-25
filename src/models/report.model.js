@@ -17,7 +17,7 @@ const ReportModel = {
     ),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       `INSERT INTO report_cards (user_id, month, overall_grade, budget_score, savings_score, trend_score, summary_en)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [

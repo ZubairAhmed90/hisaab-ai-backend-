@@ -11,7 +11,7 @@ const PartnerModel = {
     query('SELECT * FROM offer_partners WHERE is_active = 1 ORDER BY company_name ASC'),
 
   create: async (data) => {
-    const [result] = await query(
+    const result = await query(
       `INSERT INTO offer_partners (company_name, category, billing_model, rate_pkr)
        VALUES (?, ?, ?, ?)`,
       [data.company_name, data.category, data.billing_model, data.rate_pkr],

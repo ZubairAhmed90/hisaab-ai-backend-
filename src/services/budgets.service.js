@@ -25,12 +25,21 @@ const list = async (userId) => {
 };
 
 const create = async (userId, dto) => {
-  return BudgetModel.create({
-    user_id: userId,
-    category: dto.category,
-    monthly_limit: dto.monthly_limit,
-    month: parseMonth(),
-  });
+  try {
+    return await BudgetModel.create({
+      user_id: userId,
+      category: dto.category,
+      monthly_limit: dto.monthly_limit,
+      month: parseMonth(),
+    });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      const e = new Error(`A budget for "${dto.category}" already exists this month`);
+      e.status = 409;
+      throw e;
+    }
+    throw err;
+  }
 };
 
 const update = async (userId, id, dto) => {
