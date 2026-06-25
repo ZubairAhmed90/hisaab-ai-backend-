@@ -1,9 +1,10 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm install && npm run build:railway"
+buildCommand = "npm install"
 
 [deploy]
 startCommand = "node server.js"
+releaseCommand = "node scripts/db-push.js"
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

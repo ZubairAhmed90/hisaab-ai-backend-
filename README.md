@@ -1,130 +1,84 @@
 # HisaabAI Backend
 
-NestJS API · Prisma · MySQL
+Express.js · MySQL · Railway
 
-## CloudLinux / cPanel — `node_modules` symlink (important)
+## Stack
 
-On HostNext/CloudLinux, **Node.js Selector** stores packages outside your app folder:
+| Layer | Technology |
+|---|---|
+| Framework | Express.js (Node 18+) |
+| Database | MySQL via `mysql2` |
+| Auth | JWT (`jsonwebtoken` + `bcryptjs`) |
+| Validation | Joi |
+| AI | Groq API |
+| Scheduler | `node-cron` |
+| Deployment | Railway |
 
-```
-/home/petzonep/hisaab.petzone.pk/node_modules  →  symlink
-/home/petzonep/nodevenv/hisaab.petzone.pk/20/lib/node_modules  →  real files
-```
-
-**Rules:**
-
-| Do | Don't |
-|----|--------|
-| Run `npm install` from cPanel **Run NPM Install** or SSH with venv activated | Upload/copy a real `node_modules` folder into app root |
-| Keep `prisma/client/` in app root (committed) | Put a file/folder named `node_modules` in git |
-| Use `node scripts/copy-prisma-client.js` after install | Run `prisma generate` on server (OOM on shared hosting) |
-| Build with `npm run build` or build on PC and push `dist/` | Commit `node_modules/` |
-
-**If install acts broken**, check whether `node_modules` is a symlink:
-
-```bash
-cd ~/hisaab.petzone.pk
-ls -la node_modules
-# Should show: node_modules -> .../nodevenv/.../lib/node_modules
-```
-
-If it is a **real directory** (not a symlink), remove it and use cPanel **Run NPM Install** again so CloudLinux recreates the symlink:
-
-```bash
-rm -rf node_modules   # only if it's NOT already a symlink
-# then cPanel → Run NPM Install
-```
-
-Our `copy-prisma-client.js` follows the symlink into nodevenv and copies Prisma engines there.
-
----
-
-## cPanel — install & run
-
-### 1. Node.js app settings
-
-| Setting | Value |
-|---------|--------|
-| Node version | **18** or **20** |
-| Application startup file | **`server.js`** |
-| Application mode | **Production** |
-
-### 2. Environment variables (cPanel → Node.js → Environment)
-
-Add these **before** install (or create `.env` in app root):
-
-```
-DATABASE_URL=mysql://USER:PASS@localhost:3306/DBNAME
-JWT_SECRET=your-long-random-secret-min-32-chars
-JWT_REFRESH_SECRET=another-long-random-secret
-FRONTEND_URL=https://your-frontend-domain.com
-NODE_ENV=production
-```
-
-Do **not** set `PORT` on cPanel — the Node.js App assigns it automatically when you **RESTART**.
-
-Encode `@` in password as `%40` inside `DATABASE_URL`.
-
-### 3. Install (use Terminal — not only the UI button)
-
-cPanel **Setup Node.js App → Run NPM Install** often uses `--production` and **breaks** NestJS builds.
-
-**Use SSH / Terminal** in your app folder:
-
-```bash
-cd ~/hisaab.petzone.pk   # your app root (must match cPanel Application root)
-
-git pull origin main
-
-npm install --ignore-scripts
-node scripts/copy-prisma-client.js
-npm run build
-```
-
-Then cPanel → **Restart** (startup file **`server.js`**).
-
-Do **not** run `prisma generate` on the server. Linux engines live in committed `prisma/client/`.
-
-### 4. One-liner after pull
-
-```bash
-npm install && npm run deploy:cpanel
-```
-
-Then restart the app in cPanel.
-
----
-
-## If `npm install` fails on cPanel
-
-| Error | Fix |
-|-------|-----|
-| `prisma: command not found` | Run `npm install` (full, not production-only) |
-| `nest: command not found` | Same — `@nestjs/cli` is now in dependencies |
-| Prisma engine error | Run `npm run prisma:generate` after install |
-| Out of memory | `export NODE_OPTIONS=--max-old-space-size=512` then retry |
-| EACCES / permission | Fix folder ownership in cPanel File Manager |
-
----
-
-## Local development
+## Local Development
 
 ```bash
 cp .env.example .env
+# fill in your values in .env
+
 npm install
-npm run prisma:migrate:deploy
-npm run start:dev
+npm run db:push       # create tables from schema.sql
+npm run dev           # nodemon server.js
 ```
 
-API: `http://localhost:3001/api/v1` · Swagger: `/api`
+API base: `http://localhost:3001/api/v1`  
+Health check: `http://localhost:3001/api/v1/health`
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | `mysql://user:pass@host:3306/dbname` |
+| `JWT_SECRET` | Secret for access tokens |
+| `JWT_REFRESH_SECRET` | Secret for refresh tokens |
+| `GROQ_API_KEY` | Groq AI API key |
+| `GROQ_MODEL` | e.g. `llama-3.3-70b-versatile` |
+| `GOLD_API_KEY` | GoldAPI.io key |
+| `PORT` | Server port (default `3001`) |
+| `NODE_ENV` | `development` or `production` |
+| `FRONTEND_URL` | CORS origin (e.g. `https://app.hisaab.ai`) |
+| `DISABLE_CRON` | Set `true` to disable the market scheduler |
+| `ADMIN_EMAIL` | Auto-created admin email |
+| `ADMIN_PASSWORD` | Auto-created admin password |
 
 ## Scripts
 
 | Command | Description |
-|---------|-------------|
-| `npm install` | Install all packages (safe on cPanel) |
-| `npm run deploy:cpanel` | prisma generate + migrate + build |
-| `npm start` | Run `server.js` (production) |
-| `npm run start:dev` | Dev with hot reload |
+|---|---|
+| `npm start` | Start production server |
+| `npm run dev` | Start with nodemon (hot reload) |
+| `npm run db:push` | Apply `schema.sql` to database |
+
+## Project Structure
+
+```
+src/
+├── app.js              # Express app setup
+├── config/             # DB pool, env config
+├── middleware/         # auth, admin, validate, error
+├── models/             # Data access layer (raw SQL)
+├── services/           # Business logic
+├── controllers/        # HTTP request handlers
+├── routes/             # Route definitions
+├── helpers/            # Pure utility functions
+├── prompts/            # AI prompt templates
+├── catalog/            # Static data (PSX stocks)
+└── scheduler/          # node-cron jobs
+schema.sql              # MySQL table definitions
+scripts/
+└── db-push.js          # Runs schema.sql against DB
+```
+
+## Railway Deployment
+
+1. Create a Railway project and add a MySQL plugin.
+2. Set all environment variables in Railway dashboard.
+3. Push to `main` — Railway auto-deploys via `railway.toml`.
+
+The `releaseCommand` runs `node scripts/db-push.js` to apply the schema before each deploy.
 
 Never commit `.env`.
