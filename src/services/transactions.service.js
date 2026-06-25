@@ -5,7 +5,10 @@ const { categorize } = require('./ai.service');
 const { checkLimitBeforeSave } = require('./limits.service');
 const { parseCsvBuffer, mapCsvRow, summarizeByCategory, monthDateRange } = require('../helpers/transactions.helpers');
 
-const SKIP_WALLET_SOURCES = ['stock_buy', 'stock_sell', 'admin_credit', 'seed', 'balance_transfer', 'p2p_send', 'p2p_receive'];
+/** Wallet is only touched by stock buy/sell (portfolio.service). Everything else uses account. */
+const SKIP_BALANCE_SOURCES = [
+  'stock_buy', 'stock_sell', 'admin_credit', 'seed', 'balance_transfer', 'p2p_send', 'p2p_receive',
+];
 
 const create = async (userId, dto) => {
   const category = dto.category || (await categorize(dto.description));
@@ -20,30 +23,30 @@ const create = async (userId, dto) => {
   }
 
   const source = dto.source || 'manual';
-  const skipWallet = SKIP_WALLET_SOURCES.includes(source);
+  const skipBalance = SKIP_BALANCE_SOURCES.includes(source);
   let storedAmount = dto.amount;
 
   return transaction(async (conn) => {
-    if (!skipWallet) {
-      const [[user]] = await conn.execute('SELECT wallet_balance FROM users WHERE id = ?', [userId]);
+    if (!skipBalance) {
+      const [[user]] = await conn.execute('SELECT account_balance FROM users WHERE id = ?', [userId]);
       if (!user) {
         const err = new Error('User not found');
         err.status = 404;
         throw err;
       }
-      const balance = Number(user.wallet_balance);
+      const balance = Number(user.account_balance);
       const absAmount = Math.abs(Number(dto.amount));
 
       if (category === 'income' && Number(dto.amount) > 0) {
-        await UserModel.incrementWallet(conn, userId, absAmount);
+        await UserModel.incrementAccount(conn, userId, absAmount);
         storedAmount = absAmount;
       } else if (category !== 'income' && absAmount > 0) {
         if (balance < absAmount) {
-          const err = new Error(`Insufficient wallet balance. Need Rs ${absAmount}, have Rs ${balance}`);
+          const err = new Error(`Insufficient account balance. Need Rs ${absAmount}, have Rs ${balance}`);
           err.status = 400;
           throw err;
         }
-        await UserModel.decrementWallet(conn, userId, absAmount);
+        await UserModel.decrementAccount(conn, userId, absAmount);
         storedAmount = -absAmount;
       }
     } else if (source === 'stock_buy' && Number(dto.amount) > 0) {

@@ -112,7 +112,7 @@ const buyStock = async (userId, ticker, quantity) => {
     }
     const balance = Number(user.wallet_balance);
     if (balance < total) {
-      const err = new Error(`Insufficient wallet balance. Need Rs ${total}, have Rs ${balance}`);
+      const err = new Error(`Insufficient investment wallet balance. Move funds from account to wallet first. Need Rs ${total}, have Rs ${balance}`);
       err.status = 400;
       throw err;
     }
@@ -217,14 +217,14 @@ const transferBalance = async (userId, amount, direction) => {
 
     if (direction === 'to_account') {
       if (wallet < amount) {
-        const err = new Error(`Insufficient wallet balance. Need Rs ${amount}, have Rs ${wallet}`);
+        const err = new Error(`Insufficient wallet balance. Need Rs ${amount}, have Rs ${wallet}. Wallet is for stock investing only.`);
         err.status = 400;
         throw err;
       }
       await UserModel.transferBalances(conn, userId, -amount, amount);
       await TransactionModel.create(conn, {
         user_id: userId, amount: -amount,
-        description: `Moved Rs ${amount} from wallet to account ${user.account_number || ''}`.trim(),
+        description: `Moved Rs ${amount} from investment wallet to account ${user.account_number || ''}`.trim(),
         category: 'transfer', transaction_date: new Date(), source: 'balance_transfer', merchant: 'Internal transfer',
       });
     } else {
@@ -235,8 +235,8 @@ const transferBalance = async (userId, amount, direction) => {
       }
       await UserModel.transferBalances(conn, userId, amount, -amount);
       await TransactionModel.create(conn, {
-        user_id: userId, amount,
-        description: `Moved Rs ${amount} from account to wallet`,
+        user_id: userId, amount: -amount,
+        description: `Moved Rs ${amount} from account to investment wallet for stocks`,
         category: 'transfer', transaction_date: new Date(), source: 'balance_transfer', merchant: 'Internal transfer',
       });
     }

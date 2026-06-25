@@ -86,6 +86,12 @@ const UserModel = {
   decrementWallet: (conn, id, amount) =>
     conn.execute('UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?', [amount, id]),
 
+  incrementAccount: (conn, id, amount) =>
+    conn.execute('UPDATE users SET account_balance = account_balance + ? WHERE id = ?', [amount, id]),
+
+  decrementAccount: (conn, id, amount) =>
+    conn.execute('UPDATE users SET account_balance = account_balance - ? WHERE id = ?', [amount, id]),
+
   transferBalances: (conn, id, walletDelta, accountDelta) =>
     conn.execute(
       'UPDATE users SET wallet_balance = wallet_balance + ?, account_balance = account_balance + ? WHERE id = ?',

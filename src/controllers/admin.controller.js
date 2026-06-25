@@ -12,7 +12,7 @@ const handleListUsers = async (req, res, next) => {
 const handleCreditWallet = async (req, res, next) => {
   try {
     const { amount, note } = req.body;
-    res.json(ok(await creditWallet(Number(req.params.id), amount, note), 'Wallet credited'));
+    res.json(ok(await creditWallet(Number(req.params.id), amount, note), 'Account credited'));
   } catch (err) { next(err); }
 };
 

@@ -106,8 +106,8 @@ const sendMoney = async (senderId, dto) => {
     err.status = 404;
     throw err;
   }
-  if (Number(sender.wallet_balance) < amount) {
-    const err = new Error(`Insufficient wallet balance. Need Rs ${amount}, have Rs ${sender.wallet_balance}`);
+  if (Number(sender.account_balance) < amount) {
+    const err = new Error(`Insufficient account balance. Need Rs ${amount}, have Rs ${sender.account_balance}`);
     err.status = 400;
     throw err;
   }
@@ -117,8 +117,8 @@ const sendMoney = async (senderId, dto) => {
   const today = new Date();
 
   const result = await transaction(async (conn) => {
-    await UserModel.decrementWallet(conn, senderId, amount);
-    await UserModel.incrementWallet(conn, recipient.id, amount);
+    await UserModel.decrementAccount(conn, senderId, amount);
+    await UserModel.incrementAccount(conn, recipient.id, amount);
 
     const senderTxn = await TransactionModel.create(conn, {
       user_id: senderId,
@@ -155,7 +155,7 @@ const sendMoney = async (senderId, dto) => {
       user_id: recipient.id,
       type: 'money_received',
       title: 'Money received',
-      body: `You received Rs ${amount.toLocaleString()} from ${sender.name}`,
+      body: `You received Rs ${amount.toLocaleString()} in your account from ${sender.name}`,
       payload: {
         transfer_id: transfer.id,
         reference,
@@ -172,7 +172,7 @@ const sendMoney = async (senderId, dto) => {
     await upsertLinkedBeneficiary(senderId, recipient).catch(() => null);
   }
 
-  const [senderWallet, recipientWallet] = await Promise.all([
+  const [senderUser, recipientUser] = await Promise.all([
     UserModel.findById(senderId),
     UserModel.findById(recipient.id),
   ]);
@@ -182,8 +182,10 @@ const sendMoney = async (senderId, dto) => {
     amount,
     note,
     recipient: formatPublicUser(recipient),
-    sender_wallet_balance: Number(senderWallet.wallet_balance),
-    recipient_wallet_balance: Number(recipientWallet.wallet_balance),
+    sender_account_balance: Number(senderUser.account_balance),
+    sender_wallet_balance: Number(senderUser.wallet_balance),
+    recipient_account_balance: Number(recipientUser.account_balance),
+    recipient_wallet_balance: Number(recipientUser.wallet_balance),
     created_at: result.transfer.created_at,
   };
 };

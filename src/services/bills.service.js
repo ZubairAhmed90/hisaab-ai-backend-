@@ -21,8 +21,8 @@ const payBill = async (userId, dto) => {
   }
 
   const user = await UserModel.findById(userId);
-  if (Number(user.wallet_balance) < amount) {
-    const err = new Error(`Insufficient wallet balance. Need Rs ${amount}, have Rs ${user.wallet_balance}`);
+  if (Number(user.account_balance) < amount) {
+    const err = new Error(`Insufficient account balance. Need Rs ${amount}, have Rs ${user.account_balance}`);
     err.status = 400;
     throw err;
   }
@@ -32,7 +32,7 @@ const payBill = async (userId, dto) => {
   const today = new Date();
 
   return transaction(async (conn) => {
-    await UserModel.decrementWallet(conn, userId, amount);
+    await UserModel.decrementAccount(conn, userId, amount);
 
     const txn = await TransactionModel.create(conn, {
       user_id: userId,
@@ -65,6 +65,7 @@ const payBill = async (userId, dto) => {
     return {
       bill,
       transaction: txn,
+      account_balance: Number(updatedUser.account_balance),
       wallet_balance: Number(updatedUser.wallet_balance),
     };
   });

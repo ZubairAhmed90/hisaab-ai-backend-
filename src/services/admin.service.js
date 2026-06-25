@@ -75,18 +75,18 @@ const creditWallet = async (userId, amount, note) => {
   }
 
   return transaction(async (conn) => {
-    await UserModel.incrementWallet(conn, userId, amount);
+    await UserModel.incrementAccount(conn, userId, amount);
     await TransactionModel.create(conn, {
       user_id: userId,
       amount,
-      description: note || 'Admin wallet credit',
+      description: note || 'Admin account credit',
       category: 'income',
       transaction_date: new Date(),
       source: 'admin_credit',
       merchant: 'HisaabAI Admin',
     });
     const [[updated]] = await conn.execute(
-      'SELECT id, account_number, name, wallet_balance FROM users WHERE id = ?',
+      'SELECT id, account_number, name, wallet_balance, account_balance FROM users WHERE id = ?',
       [userId],
     );
     return {
@@ -94,6 +94,7 @@ const creditWallet = async (userId, amount, note) => {
       account_number: updated.account_number,
       name: updated.name,
       wallet_balance: Number(updated.wallet_balance),
+      account_balance: Number(updated.account_balance),
     };
   });
 };
