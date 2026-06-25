@@ -4,9 +4,11 @@ deployment:
     # ── Set your app root (must match cPanel Application Root) ──
     - export DEPLOYPATH=/home/petzonep/hisaab.petzone.pk
 
-    # ── Activate the Node.js virtual environment ──
-    # Change "20" to your Node.js version if different (18 or 20)
+    # ── Activate the Node.js virtual environment (change 20 to your version) ──
     - /bin/sh -c "source /home/petzonep/nodevenv/hisaab.petzone.pk/20/bin/activate && cd $DEPLOYPATH && npm install --omit=dev"
 
-    # ── Apply DB schema (CREATE TABLE IF NOT EXISTS — safe to re-run) ──
+    # ── Apply DB schema (safe to re-run — uses IF NOT EXISTS) ──
     - /bin/sh -c "source /home/petzonep/nodevenv/hisaab.petzone.pk/20/bin/activate && cd $DEPLOYPATH && node scripts/db-push.js"
+
+    # ── Reload PM2 if already running, otherwise let cPanel restart the app ──
+    - /bin/sh -c "source /home/petzonep/nodevenv/hisaab.petzone.pk/20/bin/activate && cd $DEPLOYPATH && ./node_modules/.bin/pm2 reload hisaabai-backend 2>/dev/null || true"

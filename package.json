@@ -7,9 +7,14 @@
     "node": ">=18"
   },
   "scripts": {
-    "start": "node --disable-wasm-trap-handler server.js",
+    "start": "pm2-runtime start ecosystem.config.js",
     "dev": "nodemon --exec \"node --disable-wasm-trap-handler\" server.js",
-    "db:push": "node scripts/db-push.js"
+    "db:push": "node scripts/db-push.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop hisaabai-backend",
+    "pm2:restart": "pm2 restart hisaabai-backend",
+    "pm2:logs": "pm2 logs hisaabai-backend",
+    "pm2:status": "pm2 status"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -22,7 +27,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.9.0",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "pm2": "^7.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
