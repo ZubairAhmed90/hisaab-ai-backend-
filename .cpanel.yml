@@ -1,0 +1,12 @@
+---
+deployment:
+  tasks:
+    # ── Set your app root (must match cPanel Application Root) ──
+    - export DEPLOYPATH=/home/petzonep/hisaab.petzone.pk
+
+    # ── Activate the Node.js virtual environment ──
+    # Change "20" to your Node.js version if different (18 or 20)
+    - /bin/sh -c "source /home/petzonep/nodevenv/hisaab.petzone.pk/20/bin/activate && cd $DEPLOYPATH && npm install --omit=dev"
+
+    # ── Apply DB schema (CREATE TABLE IF NOT EXISTS — safe to re-run) ──
+    - /bin/sh -c "source /home/petzonep/nodevenv/hisaab.petzone.pk/20/bin/activate && cd $DEPLOYPATH && node scripts/db-push.js"
