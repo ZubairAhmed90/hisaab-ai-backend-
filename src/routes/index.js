@@ -16,5 +16,10 @@ router.use('/portfolio', require('./portfolio.routes'));
 router.use('/market', require('./market.routes'));
 router.use('/mirror', require('./mirror.routes'));
 router.use('/ai', require('./ai.routes'));
+router.use('/payments', require('./payments.routes'));
+router.use('/beneficiaries', require('./beneficiaries.routes'));
+router.use('/money-requests', require('./money-requests.routes'));
+router.use('/notifications', require('./notifications.routes'));
+router.use('/bills', require('./bills.routes'));
 
 module.exports = router;

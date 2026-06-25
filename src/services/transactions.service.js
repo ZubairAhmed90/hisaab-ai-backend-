@@ -5,7 +5,7 @@ const { categorize } = require('./ai.service');
 const { checkLimitBeforeSave } = require('./limits.service');
 const { parseCsvBuffer, mapCsvRow, summarizeByCategory, monthDateRange } = require('../helpers/transactions.helpers');
 
-const SKIP_WALLET_SOURCES = ['stock_buy', 'stock_sell', 'admin_credit', 'seed', 'balance_transfer'];
+const SKIP_WALLET_SOURCES = ['stock_buy', 'stock_sell', 'admin_credit', 'seed', 'balance_transfer', 'p2p_send', 'p2p_receive'];
 
 const create = async (userId, dto) => {
   const category = dto.category || (await categorize(dto.description));
