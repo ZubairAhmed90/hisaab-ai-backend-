@@ -15,6 +15,7 @@ const backfillAccountNumbers = async () => {
 const ensureAdminUser = async () => {
   const email = process.env.ADMIN_EMAIL || 'admin@hisaab.ai';
   const password = process.env.ADMIN_PASSWORD || 'admin123';
+  const password_hash = await bcrypt.hash(password, 10);
 
   let user = await UserModel.findByEmail(email);
   if (!user) {
@@ -22,18 +23,20 @@ const ensureAdminUser = async () => {
     await UserModel.createAdmin({
       name: 'Admin',
       email,
-      password_hash: await bcrypt.hash(password, 10),
+      password_hash,
       account_number,
     });
+    console.log(`[Admin] Created admin user: ${email}`);
     return;
   }
-  if (!user.is_admin) {
-    await UserModel.update(user.id, { is_admin: true });
-  }
-  if (!user.account_number) {
-    const account_number = await generateUniqueAccountNumber();
-    await UserModel.update(user.id, { account_number });
-  }
+
+  const account_number = user.account_number || await generateUniqueAccountNumber();
+  await UserModel.update(user.id, {
+    is_admin: true,
+    password_hash,
+    account_number,
+  });
+  console.log(`[Admin] Ensured admin user: ${email} (password synced from ADMIN_PASSWORD)`);
 };
 
 const initAdmin = async () => {
