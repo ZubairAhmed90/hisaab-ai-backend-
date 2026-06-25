@@ -38,7 +38,14 @@ const register = async (dto) => {
 };
 
 const login = async (dto) => {
-  const user = await UserModel.findByEmail(dto.email);
+  const identifier = String(dto.email).trim();
+  let user = null;
+  if (identifier.includes('@')) {
+    user = await UserModel.findByEmail(identifier);
+  } else {
+    user = await UserModel.findByAccountNumber(identifier);
+    if (!user) user = await UserModel.findByEmail(identifier);
+  }
   if (!user) {
     const err = new Error('Invalid credentials');
     err.status = 401;
