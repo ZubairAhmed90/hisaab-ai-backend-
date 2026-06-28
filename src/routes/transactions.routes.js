@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 const {
   handleCreate,
   handleList,
+  handleGetOne,
   handleSummary,
   handleImportCsv,
   handleUpdateCategory,
@@ -32,6 +33,7 @@ router.use(auth);
 router.post('/', validate(createSchema), handleCreate);
 router.get('/', handleList);
 router.get('/summary', handleSummary);
+router.get('/:id', handleGetOne);
 router.post('/import-csv', upload.single('file'), handleImportCsv);
 router.patch('/:id/category', validate(updateCategorySchema), handleUpdateCategory);
 router.delete('/:id', handleRemove);

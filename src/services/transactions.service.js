@@ -3,6 +3,7 @@ const UserModel = require('../models/user.model');
 const TransactionModel = require('../models/transaction.model');
 const { categorize } = require('./ai.service');
 const { checkLimitBeforeSave } = require('./limits.service');
+const { createTxnWithSnapshots, readBalances } = require('../helpers/transaction.helpers');
 const { parseCsvBuffer, mapCsvRow, summarizeByCategory, monthDateRange } = require('../helpers/transactions.helpers');
 
 /** Wallet is only touched by stock buy/sell (portfolio.service). Everything else uses account. */
@@ -27,14 +28,9 @@ const create = async (userId, dto) => {
   let storedAmount = dto.amount;
 
   return transaction(async (conn) => {
+    const balancesBefore = await readBalances(conn, userId);
     if (!skipBalance) {
-      const [[user]] = await conn.execute('SELECT account_balance FROM users WHERE id = ?', [userId]);
-      if (!user) {
-        const err = new Error('User not found');
-        err.status = 404;
-        throw err;
-      }
-      const balance = Number(user.account_balance);
+      const balance = balancesBefore.account;
       const absAmount = Math.abs(Number(dto.amount));
 
       if (category === 'income' && Number(dto.amount) > 0) {
@@ -53,15 +49,14 @@ const create = async (userId, dto) => {
       storedAmount = -Math.abs(Number(dto.amount));
     }
 
-    return TransactionModel.create(conn, {
-      user_id: userId,
+    return createTxnWithSnapshots(conn, userId, {
       amount: storedAmount,
       description: dto.description,
       category,
       merchant: dto.merchant || null,
       transaction_date: new Date(dto.date),
       source,
-    });
+    }, balancesBefore);
   });
 };
 
@@ -75,13 +70,23 @@ const updateCategory = async (userId, id, category) => {
   return TransactionModel.updateCategory(id, category);
 };
 
-const list = async (userId, page = 1, limit = 20) => {
+const list = async (userId, page = 1, limit = 20, filters = {}) => {
   const offset = (page - 1) * limit;
   const [items, total] = await Promise.all([
-    TransactionModel.findMany(userId, { limit, offset }),
-    TransactionModel.count(userId),
+    TransactionModel.findMany(userId, { limit, offset, ...filters }),
+    TransactionModel.count(userId, filters),
   ]);
   return { items, total, page, limit };
+};
+
+const getOne = async (userId, id) => {
+  const txn = await TransactionModel.findOne(id, userId);
+  if (!txn) {
+    const err = new Error('Transaction not found');
+    err.status = 404;
+    throw err;
+  }
+  return txn;
 };
 
 const summary = async (userId, month) => {
@@ -126,4 +131,4 @@ const remove = async (userId, id) => {
   return { deleted: true };
 };
 
-module.exports = { create, updateCategory, list, summary, importCsv, remove };
+module.exports = { create, updateCategory, list, getOne, summary, importCsv, remove };

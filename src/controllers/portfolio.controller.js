@@ -12,7 +12,9 @@ const handleGetWallet = async (req, res, next) => {
 const handleGetTrades = async (req, res, next) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 20, 100);
-    res.json(ok(await getTrades(req.user.userId, limit)));
+    const ticker = req.query.ticker?.trim() || undefined;
+    const days = req.query.days ? Number(req.query.days) : undefined;
+    res.json(ok(await getTrades(req.user.userId, { limit, ticker, days })));
   } catch (err) { next(err); }
 };
 

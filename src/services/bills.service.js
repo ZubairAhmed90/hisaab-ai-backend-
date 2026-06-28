@@ -4,6 +4,7 @@ const TransactionModel = require('../models/transaction.model');
 const BillPaymentModel = require('../models/bill-payment.model');
 const NotificationModel = require('../models/notification.model');
 const { checkLimitBeforeSave } = require('./limits.service');
+const { createTxnWithSnapshots, readBalances } = require('../helpers/transaction.helpers');
 
 const payBill = async (userId, dto) => {
   const amount = Number(dto.amount);
@@ -32,17 +33,17 @@ const payBill = async (userId, dto) => {
   const today = new Date();
 
   return transaction(async (conn) => {
+    const balancesBefore = await readBalances(conn, userId);
     await UserModel.decrementAccount(conn, userId, amount);
 
-    const txn = await TransactionModel.create(conn, {
-      user_id: userId,
+    const txn = await createTxnWithSnapshots(conn, userId, {
       amount: -amount,
       description: `${billerName} bill — ${consumerNumber}`,
       category: 'utilities',
       merchant: billerName,
       transaction_date: today,
       source: 'bill_pay',
-    });
+    }, balancesBefore);
 
     const bill = await BillPaymentModel.create(conn, {
       user_id: userId,
@@ -67,6 +68,10 @@ const payBill = async (userId, dto) => {
       transaction: txn,
       account_balance: Number(updatedUser.account_balance),
       wallet_balance: Number(updatedUser.wallet_balance),
+      account_balance_before: txn.account_balance_before,
+      account_balance_after: txn.account_balance_after,
+      wallet_balance_before: txn.wallet_balance_before,
+      wallet_balance_after: txn.wallet_balance_after,
     };
   });
 };

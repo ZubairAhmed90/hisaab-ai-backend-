@@ -1,4 +1,4 @@
-const { create, updateCategory, list, summary, importCsv, remove } = require('../services/transactions.service');
+const { create, updateCategory, list, getOne, summary, importCsv, remove } = require('../services/transactions.service');
 const { ok } = require('../helpers/response');
 
 const handleCreate = async (req, res, next) => {
@@ -11,7 +11,15 @@ const handleList = async (req, res, next) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Math.min(Number(req.query.limit) || 20, 100);
-    res.json(ok(await list(req.user.userId, page, limit)));
+    const merchant = req.query.merchant?.trim() || undefined;
+    const linkedUserId = req.query.linked_user_id ? Number(req.query.linked_user_id) : undefined;
+    res.json(ok(await list(req.user.userId, page, limit, { merchant, linkedUserId })));
+  } catch (err) { next(err); }
+};
+
+const handleGetOne = async (req, res, next) => {
+  try {
+    res.json(ok(await getOne(req.user.userId, Number(req.params.id))));
   } catch (err) { next(err); }
 };
 
@@ -42,4 +50,4 @@ const handleRemove = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { handleCreate, handleList, handleSummary, handleImportCsv, handleUpdateCategory, handleRemove };
+module.exports = { handleCreate, handleList, handleGetOne, handleSummary, handleImportCsv, handleUpdateCategory, handleRemove };

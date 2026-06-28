@@ -6,6 +6,7 @@ const PeerTransferModel = require('../models/peer-transfer.model');
 const BeneficiaryModel = require('../models/beneficiary.model');
 const NotificationModel = require('../models/notification.model');
 const { checkLimitBeforeSave } = require('./limits.service');
+const { createTxnWithSnapshots, readBalances } = require('../helpers/transaction.helpers');
 
 function makeReference() {
   return `TXN${Date.now()}${randomBytes(3).toString('hex').toUpperCase()}`;
@@ -117,28 +118,29 @@ const sendMoney = async (senderId, dto) => {
   const today = new Date();
 
   const result = await transaction(async (conn) => {
+    const senderBefore = await readBalances(conn, senderId);
+    const recipientBefore = await readBalances(conn, recipient.id);
+
     await UserModel.decrementAccount(conn, senderId, amount);
     await UserModel.incrementAccount(conn, recipient.id, amount);
 
-    const senderTxn = await TransactionModel.create(conn, {
-      user_id: senderId,
+    const senderTxn = await createTxnWithSnapshots(conn, senderId, {
       amount: -amount,
       description: note ? `Sent to ${recipient.name}: ${note}` : `Sent to ${recipient.name}`,
       category: 'transfer',
       merchant: recipient.name,
       transaction_date: today,
       source: 'p2p_send',
-    });
+    }, senderBefore);
 
-    const recipientTxn = await TransactionModel.create(conn, {
-      user_id: recipient.id,
+    const recipientTxn = await createTxnWithSnapshots(conn, recipient.id, {
       amount: amount,
       description: note ? `Received from ${sender.name}: ${note}` : `Received from ${sender.name}`,
       category: 'income',
       merchant: sender.name,
       transaction_date: today,
       source: 'p2p_receive',
-    });
+    }, recipientBefore);
 
     const transfer = await PeerTransferModel.create(conn, {
       reference,
@@ -184,8 +186,13 @@ const sendMoney = async (senderId, dto) => {
     recipient: formatPublicUser(recipient),
     sender_account_balance: Number(senderUser.account_balance),
     sender_wallet_balance: Number(senderUser.wallet_balance),
+    sender_account_balance_before: result.senderTxn.account_balance_before,
+    sender_account_balance_after: result.senderTxn.account_balance_after,
+    sender_wallet_balance_before: result.senderTxn.wallet_balance_before,
+    sender_wallet_balance_after: result.senderTxn.wallet_balance_after,
     recipient_account_balance: Number(recipientUser.account_balance),
     recipient_wallet_balance: Number(recipientUser.wallet_balance),
+    transaction_id: result.senderTxn.id,
     created_at: result.transfer.created_at,
   };
 };

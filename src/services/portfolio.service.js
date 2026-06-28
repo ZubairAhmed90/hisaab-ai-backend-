@@ -7,6 +7,7 @@ const MarketModel = require('../models/market.model');
 const { CATALOG_BY_TICKER } = require('../catalog/stock.catalog');
 const { FALLBACK_PRICES, DEMO_TRANSACTIONS, daysAgoDate } = require('../helpers/portfolio.helpers');
 const { getStockPrice } = require('./market.service');
+const { createTxnWithSnapshots, readBalances } = require('../helpers/transaction.helpers');
 
 const seedDemoData = async (userId) => {
   const count = await TransactionModel.countByUser(userId);
@@ -104,13 +105,8 @@ const buyStock = async (userId, ticker, quantity) => {
   const total = Math.round(price * quantity * 100) / 100;
 
   await transaction(async (conn) => {
-    const [[user]] = await conn.execute('SELECT wallet_balance FROM users WHERE id = ?', [userId]);
-    if (!user) {
-      const err = new Error('User not found');
-      err.status = 404;
-      throw err;
-    }
-    const balance = Number(user.wallet_balance);
+    const balancesBefore = await readBalances(conn, userId);
+    const balance = balancesBefore.wallet;
     if (balance < total) {
       const err = new Error(`Insufficient investment wallet balance. Move funds from account to wallet first. Need Rs ${total}, have Rs ${balance}`);
       err.status = 400;
@@ -118,6 +114,7 @@ const buyStock = async (userId, ticker, quantity) => {
     }
 
     await UserModel.decrementWallet(conn, userId, total);
+    const balancesAfterWallet = await readBalances(conn, userId);
 
     const existing = await HoldingModel.findByUserAndTickerTx(conn, userId, upper);
     if (existing) {
@@ -130,12 +127,25 @@ const buyStock = async (userId, ticker, quantity) => {
       await HoldingModel.create(conn, { user_id: userId, ticker: upper, display_name: meta.display_name, quantity, avg_cost_pkr: price });
     }
 
-    await TradeModel.create(conn, { user_id: userId, ticker: upper, display_name: meta.display_name, side: 'buy', quantity, price_pkr: price, total_pkr: total });
-    await TransactionModel.create(conn, {
-      user_id: userId, amount: -total,
-      description: `Bought ${quantity} ${upper} @ Rs ${price}`,
-      category: 'invest', transaction_date: new Date(), source: 'stock_buy', merchant: upper,
+    await TradeModel.create(conn, {
+      user_id: userId,
+      ticker: upper,
+      display_name: meta.display_name,
+      side: 'buy',
+      quantity,
+      price_pkr: price,
+      total_pkr: total,
+      wallet_balance_before: balancesBefore.wallet,
+      wallet_balance_after: balancesAfterWallet.wallet,
     });
+    await createTxnWithSnapshots(conn, userId, {
+      amount: -total,
+      description: `Bought ${quantity} ${upper} @ Rs ${price}`,
+      category: 'invest',
+      transaction_date: new Date(),
+      source: 'stock_buy',
+      merchant: upper,
+    }, balancesBefore);
   });
 
   return getPortfolio(userId);
@@ -159,6 +169,7 @@ const sellStock = async (userId, ticker, quantity) => {
   const total = Math.round(price * quantity * 100) / 100;
 
   await transaction(async (conn) => {
+    const balancesBefore = await readBalances(conn, userId);
     const holding = await HoldingModel.findByUserAndTickerTx(conn, userId, upper);
     if (!holding) {
       const err = new Error(`You don't own ${upper}`);
@@ -173,6 +184,7 @@ const sellStock = async (userId, ticker, quantity) => {
     }
 
     await UserModel.incrementWallet(conn, userId, total);
+    const balancesAfterWallet = await readBalances(conn, userId);
 
     const remaining = owned - quantity;
     if (remaining <= 0.0001) {
@@ -181,18 +193,36 @@ const sellStock = async (userId, ticker, quantity) => {
       await HoldingModel.updateQuantity(conn, holding.id, remaining);
     }
 
-    await TradeModel.create(conn, { user_id: userId, ticker: upper, display_name: meta.display_name, side: 'sell', quantity, price_pkr: price, total_pkr: total });
-    await TransactionModel.create(conn, {
-      user_id: userId, amount: total,
-      description: `Sold ${quantity} ${upper} @ Rs ${price}`,
-      category: 'invest', transaction_date: new Date(), source: 'stock_sell', merchant: upper,
+    await TradeModel.create(conn, {
+      user_id: userId,
+      ticker: upper,
+      display_name: meta.display_name,
+      side: 'sell',
+      quantity,
+      price_pkr: price,
+      total_pkr: total,
+      wallet_balance_before: balancesBefore.wallet,
+      wallet_balance_after: balancesAfterWallet.wallet,
     });
+    await createTxnWithSnapshots(conn, userId, {
+      amount: total,
+      description: `Sold ${quantity} ${upper} @ Rs ${price}`,
+      category: 'invest',
+      transaction_date: new Date(),
+      source: 'stock_sell',
+      merchant: upper,
+    }, balancesBefore);
   });
 
   return getPortfolio(userId);
 };
 
-const getTrades = async (userId, limit = 20) => TradeModel.findByUser(userId, limit);
+const getTrades = async (userId, { limit = 20, ticker, days } = {}) => {
+  if (ticker) {
+    return TradeModel.findByUserAndTicker(userId, ticker, { limit, days: days || 7 });
+  }
+  return TradeModel.findByUser(userId, limit);
+};
 
 const transferBalance = async (userId, amount, direction) => {
   if (!amount || amount <= 0) {
@@ -202,18 +232,16 @@ const transferBalance = async (userId, amount, direction) => {
   }
 
   return transaction(async (conn) => {
-    const [[user]] = await conn.execute(
-      'SELECT wallet_balance, account_balance, account_number FROM users WHERE id = ?',
-      [userId],
-    );
-    if (!user) {
+    const [[userRow]] = await conn.execute('SELECT account_number FROM users WHERE id = ?', [userId]);
+    if (!userRow) {
       const err = new Error('User not found');
       err.status = 404;
       throw err;
     }
-
-    const wallet = Number(user.wallet_balance);
-    const account = Number(user.account_balance);
+    const balancesBefore = await readBalances(conn, userId);
+    const wallet = balancesBefore.wallet;
+    const account = balancesBefore.account;
+    const acctNum = userRow.account_number || '';
 
     if (direction === 'to_account') {
       if (wallet < amount) {
@@ -222,11 +250,14 @@ const transferBalance = async (userId, amount, direction) => {
         throw err;
       }
       await UserModel.transferBalances(conn, userId, -amount, amount);
-      await TransactionModel.create(conn, {
-        user_id: userId, amount: -amount,
-        description: `Moved Rs ${amount} from investment wallet to account ${user.account_number || ''}`.trim(),
-        category: 'transfer', transaction_date: new Date(), source: 'balance_transfer', merchant: 'Internal transfer',
-      });
+      await createTxnWithSnapshots(conn, userId, {
+        amount: -amount,
+        description: `Moved Rs ${amount} from investment wallet to account ${acctNum}`.trim(),
+        category: 'transfer',
+        transaction_date: new Date(),
+        source: 'balance_transfer',
+        merchant: 'Internal transfer',
+      }, balancesBefore);
     } else {
       if (account < amount) {
         const err = new Error(`Insufficient account balance. Need Rs ${amount}, have Rs ${account}`);
@@ -234,22 +265,27 @@ const transferBalance = async (userId, amount, direction) => {
         throw err;
       }
       await UserModel.transferBalances(conn, userId, amount, -amount);
-      await TransactionModel.create(conn, {
-        user_id: userId, amount: -amount,
+      await createTxnWithSnapshots(conn, userId, {
+        amount: -amount,
         description: `Moved Rs ${amount} from account to investment wallet for stocks`,
-        category: 'transfer', transaction_date: new Date(), source: 'balance_transfer', merchant: 'Internal transfer',
-      });
+        category: 'transfer',
+        transaction_date: new Date(),
+        source: 'balance_transfer',
+        merchant: 'Internal transfer',
+      }, balancesBefore);
     }
 
-    const [[updated]] = await conn.execute(
-      'SELECT wallet_balance, account_balance, account_number FROM users WHERE id = ?',
-      [userId],
-    );
+    const after = await readBalances(conn, userId);
     return {
-      wallet_balance: Number(updated.wallet_balance),
-      account_balance: Number(updated.account_balance),
-      account_number: updated.account_number,
-      direction, amount,
+      wallet_balance: after.wallet,
+      account_balance: after.account,
+      account_number: acctNum,
+      account_balance_before: balancesBefore.account,
+      account_balance_after: after.account,
+      wallet_balance_before: balancesBefore.wallet,
+      wallet_balance_after: after.wallet,
+      direction,
+      amount,
     };
   });
 };

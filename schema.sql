@@ -47,12 +47,17 @@ CREATE TABLE IF NOT EXISTS transactions (
   merchant         VARCHAR(100),
   transaction_date DATE NOT NULL,
   source           VARCHAR(20) NOT NULL DEFAULT 'manual',
+  account_balance_before DECIMAL(14,2),
+  account_balance_after  DECIMAL(14,2),
+  wallet_balance_before  DECIMAL(14,2),
+  wallet_balance_after   DECIMAL(14,2),
   is_recurring     TINYINT(1) NOT NULL DEFAULT 0,
   ai_confidence    DECIMAL(3,2),
   user_corrected   TINYINT(1) NOT NULL DEFAULT 0,
   created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user_date (user_id, transaction_date)
+  INDEX idx_user_date (user_id, transaction_date),
+  INDEX idx_user_merchant (user_id, merchant)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS budgets (
@@ -115,9 +120,12 @@ CREATE TABLE IF NOT EXISTS stock_trades (
   quantity     DECIMAL(12,4) NOT NULL,
   price_pkr    DECIMAL(12,4) NOT NULL,
   total_pkr    DECIMAL(14,2) NOT NULL,
+  wallet_balance_before DECIMAL(14,2),
+  wallet_balance_after  DECIMAL(14,2),
   created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user_created (user_id, created_at)
+  INDEX idx_user_created (user_id, created_at),
+  INDEX idx_user_ticker (user_id, ticker, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS ai_insights (
